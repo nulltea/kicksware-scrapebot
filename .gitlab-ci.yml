@@ -1,0 +1,12 @@
+image: dtzar/helm-kubectl:3.3.0
+
+stages:
+  - build
+  - test
+  - deploy
+  - check
+
+bot.todo:
+  stage: build
+  script:
+    - echo "TODO"
