@@ -1,5 +1,6 @@
 import re
 import mongoengine as mdb
+from typing import List
 from config.config import service_config as config
 
 mdb.connect(
@@ -36,22 +37,29 @@ class SneakerReference(mdb.Document):
     brand_name = mdb.StringField(db_field="brandname")
     model_name = mdb.StringField(db_field="modelname")
     base_model_name = mdb.StringField(db_field="basemodelname")
+    brand = mdb.StringField()
+    model = mdb.StringField()
+    base_model = mdb.StringField(db_field="basemodel")
     description = mdb.StringField()
-    release_date = mdb.DateField()
+    release_date = mdb.DateField("releasedate")
     release_strdate = mdb.StringField()
     color = mdb.StringField()
     gender = mdb.StringField()
     nickname = mdb.StringField()
     price = mdb.DecimalField()
     materials = mdb.ListField()
-    categories = mdb.ListField
-    image_link = mdb.StringField(db_field="imageLink")
-    image_links = mdb.ListField(db_field="imageLinks")
-    stadium_url = mdb.StringField(db_field="stadiumURL")
-    meta = {"collection": config.mongodb.collection}
+    categories = mdb.ListField()
+    image_link = mdb.StringField(db_field="imagelink")
+    image_links = mdb.ListField(db_field="imagelinks")
+    stadium_url = mdb.StringField(db_field="stadiumurl")
+    meta = {"collection": config.mongodb.collection, "strict": False}
 
     def generate_id(self):
         re_id = re.compile(r"[\n\t\s;,.()\\/]")
         model_id = re_id.sub("-", self.model_name)
         sku_id = re_id.sub("-", self.manufacture_sku)
         self.unique_id = f"{model_id}_{sku_id}".lower()
+
+
+def save_records(records: List[SneakerReference]) -> bool:
+    return len(SneakerReference.objects.insert(records)) > 0

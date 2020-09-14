@@ -40,6 +40,7 @@ def scroll_bottom(browser: WebDriver):
             break
         last_height = new_height
 
+
 def wait_until_located(browser: WebDriver, selector: str):
     try:
         WebDriverWait(browser, 5).until(ec.presence_of_element_located((By.CSS_SELECTOR, selector)))

@@ -1,6 +1,7 @@
 commonConfig:
   seleniumPath: /driver/chromedriver.exe
   backupPath: /backup/stadium_goods
+  imageStoragePath: /storage/images
 targetConfig:
   host: stadiumgoods.com
   releasesURL: https://stadiumgoods.com/stadium-picks

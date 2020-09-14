@@ -6,6 +6,7 @@ class CommonConfig:
         self._config = config["commonConfig"]
         self.selenium_path = self._config["seleniumPath"]
         self.backup_path = self._config["backupPath"]
+        self.image_storage_path = self._config["imageStoragePath"]
 
 
 class TargetConfig:
