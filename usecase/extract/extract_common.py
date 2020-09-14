@@ -3,8 +3,10 @@ from selenium import webdriver
 from selenium.webdriver.remote.webdriver import WebElement, WebDriver
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.common.by import By as by
+from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as ec
+
+PAUSE_TIME = 3
 
 
 def provide_browser() -> WebDriver:
@@ -20,16 +22,34 @@ def scroll_to_element(browser: WebDriver, element: WebElement):
     actions.move_to_element(element).perform()
 
 
-def scroll_to_last_element(browser, selector, times):
+def scroll_to_last_element(browser: WebDriver, selector: str, times: int):
     wait_until_located(browser, selector)
     for _ in range(times):
-        time.sleep(5)
+        time.sleep(PAUSE_TIME)
         last = browser.find_elements_by_css_selector(selector)[-1]
         scroll_to_element(browser, last)
 
 
-def wait_until_located(browser: WebDriver, selector):
+def scroll_bottom(browser: WebDriver):
+    last_height = browser.execute_script("return document.body.scrollHeight")
+    while True:
+        browser.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+        time.sleep(PAUSE_TIME)
+        new_height = browser.execute_script("return document.body.scrollHeight")
+        if new_height == last_height:
+            break
+        last_height = new_height
+
+def wait_until_located(browser: WebDriver, selector: str):
     try:
-        WebDriverWait(browser, 5).until(ec.presence_of_element_located((by.CSS_SELECTOR, selector)))
+        WebDriverWait(browser, 5).until(ec.presence_of_element_located((By.CSS_SELECTOR, selector)))
+    except:
+        return
+
+
+def wait_until_intractable(browser: WebDriver, selector: str):
+    time.sleep(1)
+    try:
+        WebDriverWait(browser, 10).until(ec.element_to_be_clickable(selector))
     except:
         return

@@ -5,6 +5,7 @@ class CommonConfig:
     def __init__(self, config):
         self._config = config["commonConfig"]
         self.selenium_path = self._config["seleniumPath"]
+        self.backup_path = self._config["backupPath"]
 
 
 class TargetConfig:
@@ -14,6 +15,8 @@ class TargetConfig:
         self.releases_url = self._config["releasesURL"]
         self.sign_in_url = self._config["signInURL"]
         self.search_url = self._config["searchURL"]
+        self.login = self._config["login"]
+        self.password = self._config["password"]
 
 
 class TLSConfig:

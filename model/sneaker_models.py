@@ -5,7 +5,7 @@ from config.config import service_config as config
 mdb.connect(
     db=config.mongodb.database,
     host=config.mongodb.URL,
-    username=config.mongodb.login,
+    username=config.mongodb.sign_in,
     password=config.mongodb.password,
     authentication_source="admin",
     ssl=config.mongodb.TLS.enabled,
