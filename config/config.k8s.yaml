@@ -1,0 +1,22 @@
+commonConfig:
+  seleniumPath: /driver/chromedriver.exe
+  backupPath: /backup/stadium_goods
+targetConfig:
+  host: stadiumgoods.com
+  releasesURL: https://stadiumgoods.com/stadium-picks
+  signInURL: https://sellers.stadiumgoods.com/users/sign_in
+  searchURL: https://sellers.stadiumgoods.com/sellers/tickets/new
+  login: $STADIUM_LOGIN
+  password: $STADIUM_PASSWORD
+mongoConfig:
+  URL: mongodb://db.kicksware.com:443
+  TLS:
+    enableTLS: true
+    certFile: certs/mongo/ca.crt
+    keyFile: certs/mongo/tls.key
+  database: sneakerResaleDB
+  collection: references
+  brandCollection: brands
+  modelCollection: models
+  login: $MONGO_USER
+  password: $MONGO_PASSWORD

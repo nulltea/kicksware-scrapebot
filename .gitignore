@@ -81,7 +81,7 @@ ipython_config.py
 # pyenv
 .python-version
 
-# celery beat schedule file
+# celery beat worker file
 celerybeat-schedule
 
 # SageMath parsed files
@@ -113,3 +113,7 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+.idea
+.vs
+.vscode
