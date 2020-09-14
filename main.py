@@ -1,4 +1,4 @@
-import usecase.extract.releases_extractor as extractor
+import usecase.scheduler.release_scheduler as scheduler
 
-print(extractor.extract_releases())
-
+if __name__ == "__main__":
+    scheduler.schedule_daily_task()
