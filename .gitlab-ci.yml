@@ -5,3 +5,8 @@ stages:
   - test
   - deploy
   - check
+
+bot.todo:
+  stage: build
+  script:
+    - echo "TODO"
