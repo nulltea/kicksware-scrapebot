@@ -6,7 +6,7 @@ import pandas as pd
 import numpy as np
 import mongoengine as mdb
 
-from datetime import datetime
+from datetime import datetime, date
 from typing import List, Dict
 from model.sneaker_models import SneakerReference
 from config.config import service_config as config
@@ -211,4 +211,5 @@ def map_to_db_record(ref: dict) -> SneakerReference:
         image_link=ref["imagelink"],
         image_links=ref["imagelinks"],
         stadium_url=ref["stadiumurl"],
+        added_date=date.today(),
     )

@@ -52,6 +52,7 @@ class SneakerReference(mdb.Document):
     image_link = mdb.StringField(db_field="imagelink")
     image_links = mdb.ListField(db_field="imagelinks")
     stadium_url = mdb.StringField(db_field="stadiumurl")
+    added_date = mdb.DateField(db_field="added_date")
     meta = {"collection": config.mongodb.collection, "strict": False}
 
     def generate_id(self):
