@@ -27,7 +27,7 @@ def transform_data(data: List[SneakerReference]) -> List[SneakerReference]:
     ]
     warnings.simplefilter(action='ignore', category=UserWarning)
     for i, step in enumerate(pipeline):
-        print(f"Execution {i+1} step {{{step.__name__}}} with {len(df)} records")
+        print(f"Execution {i+1} step [{step.__name__}] with {len(df)} records")
         df = step(df)
 
     df = get_target_records(df, target_ids=unique_ids)
@@ -180,12 +180,16 @@ def map_to_db_record(ref: dict) -> SneakerReference:
     release_date = ref["release_strdate"]
     try:
         parts = release_date.split("/")
-        if len(parts) == 3:
-            release_date = datetime.strptime(release_date, "%m/%d/%Y")
+        if p_date := try_parse_date(release_date, "%B %d, %Y"):
+            release_date = p_date
+        elif len(parts) == 3 and (p_date := try_parse_date(release_date, "%m/%d/%Y")):
+            release_date = p_date
+        elif len(parts) == 3 and (p_date := try_parse_date(release_date, "%d/%m/%Y")):
+            release_date = p_date
         elif len(parts) == 2:
-            release_date = datetime.strptime(f"{parts[0]}/1/{parts[1]}", "%m/%d/%Y")
+            release_date = try_parse_date(f"{parts[0]}/1/{parts[1]}", "%m/%d/%Y")
         else:
-            release_date = datetime.strptime(f"1/1/{parts[0]}", "%d/%m/%Y")
+            release_date = try_parse_date(f"1/1/{parts[0]}", "%d/%m/%Y")
     except:
         release_date = release_date if release_date else None
     ref["releasedate"] = release_date if isinstance(release_date, datetime) else None
@@ -204,7 +208,7 @@ def map_to_db_record(ref: dict) -> SneakerReference:
         gender=ref["gender"],
         nickname=ref["nickname"],
         release_date=ref["releasedate"],
-        release_strdate=ref["releasedate"],
+        release_strdate=ref["release_strdate"],
         price=ref["price"],
         materials=ref["materials"] if len(ref["materials"]) else None,
         categories=ref["categories"] if len(ref["categories"]) else None,
@@ -213,3 +217,10 @@ def map_to_db_record(ref: dict) -> SneakerReference:
         stadium_url=ref["stadiumurl"],
         added_date=date.today(),
     )
+
+
+def try_parse_date(date_str, d_format):
+    try:
+        return datetime.strptime(date_str, d_format)
+    except:
+        return None
