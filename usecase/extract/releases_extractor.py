@@ -1,11 +1,16 @@
 import re
+import time
 import demjson
 import logging
 from typing import List, Dict
 from bs4 import BeautifulSoup
 from usecase.extract.extract_common import *
+from usecase.extract.extract_backup import *
 from model.sneaker_models import SneakerReference
 from config.config import service_config as config
+
+MAX_PAUSE_TIME = config.common.max_pause_time
+MIN_PAUSE_TIME = config.common.min_pause_time
 
 
 def extract_releases() -> List[SneakerReference]:
@@ -13,7 +18,9 @@ def extract_releases() -> List[SneakerReference]:
     selector = 'a[data-element="Product Tile"]'
     browser = provide_browser()
     browser.get(config.target.releases_url)
+    backuped_records = [r.stadium_url for r in read_backup_records()]
     while not found_existed:
+        time.sleep(MAX_PAUSE_TIME)
         wait_until_located(browser, selector)
         product_tiles = browser.find_elements_by_css_selector(selector)
         if last_label and (last_elem := browser.find_element_by_css_selector(f'a[aria-label="{last_label}"]')):
@@ -21,15 +28,18 @@ def extract_releases() -> List[SneakerReference]:
             if index == len(product_tiles):
                 break
             product_tiles = product_tiles[index:]
-        for tile in product_tiles:
-            product_link = tile.get_attribute("href")
-            product_label = last_label = tile.get_attribute("aria-label")
-            logging.info(f'Start processing "{product_label}" product from "{product_link}"')
-            browser.get(product_link)
+        product_attrs = [(tile.get_attribute("href"), tile.get_attribute("aria-label")) for tile in product_tiles]
+        product_attrs = [(link, label) for link, label in product_attrs if link not in backuped_records]
+        for link, label in product_attrs:
+            time.sleep(MIN_PAUSE_TIME)
+            logging.info(f'Start processing "{label}" product from "{link}"')
+            browser.get(link)
+            time.sleep(MAX_PAUSE_TIME)
             if record := extract_from_page(browser.page_source):
                 record.generate_id()
                 if not already_exists(record):
                     extracted.append(record)
+                    backup_record(record)
                     continue
                 found_existed = True
                 break
@@ -66,7 +76,7 @@ def extract_from_page(page_source) -> SneakerReference:
             sneaker_record.manufacture_sku = sku.split("|")[-1]
         if name := script_data["Name"]:
             sneaker_record.model_name = name
-        sneaker_record.price = script_data["Price"]
+        sneaker_record.price = parse_price(script_data["Price"])
         sneaker_record.categories = script_data["Categories"]
         sneaker_record.stadium_url = script_data["URL"]
     if brand_data:
@@ -74,14 +84,17 @@ def extract_from_page(page_source) -> SneakerReference:
     if material_data:
         sneaker_record.materials = [material.strip() for material in material_data.split(",")]
     if attr_data:
-        if not sneaker_record.manufacture_sku and (sku := attr_data["Manufacturer Sku"]):
+        if not sneaker_record.manufacture_sku and "Manufacturer Sku" in attr_data and (sku := attr_data["Manufacturer Sku"]):
             sneaker_record.manufacture_sku = sku
-        if not sneaker_record.release_strdate and (date := attr_data["Release Date"]):
+        if not sneaker_record.release_strdate and "Release Date" in attr_data and (date := attr_data["Release Date"]):
             sneaker_record.release_strdate = date
-        if not sneaker_record.color and (color := attr_data["Colorway"]):
+        if not sneaker_record.color and "Colorway" in attr_data and (color := attr_data["Colorway"]):
             sneaker_record.colorway = color
-        sneaker_record.nickname = attr_data["Nickname"]
-        sneaker_record.gender = attr_data["Gender"]
+        if "Nickname" in attr_data:
+            sneaker_record.nickname = attr_data["Nickname"]
+        if "Gender" in attr_data:
+            sneaker_record.gender = attr_data["Gender"]
+    time.sleep(MIN_PAUSE_TIME)
     if (images := extract_images(source)) and len(images):
         sneaker_record.image_link = images[0]
         sneaker_record.image_links = images
@@ -128,6 +141,16 @@ def parse_table(table_source) -> Dict[str, str]:
             value = row.find("td").text.strip()
             data[key] = value
     return data
+
+
+def parse_price(price_str):
+    price = 0
+    price_str = price_str.strip().replace(',', '.')
+    try:
+        price = float(price_str)
+    except:
+        return 0
+    return price
 
 
 def already_exists(record: SneakerReference) -> bool:

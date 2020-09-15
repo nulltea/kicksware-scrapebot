@@ -7,6 +7,8 @@ class CommonConfig:
         self.selenium_path = self._config["seleniumPath"]
         self.backup_path = self._config["backupPath"]
         self.image_storage_path = self._config["imageStoragePath"]
+        self.min_pause_time = self._config["minPauseTime"]
+        self.max_pause_time = self._config["maxPauseTime"]
 
 
 class TargetConfig:

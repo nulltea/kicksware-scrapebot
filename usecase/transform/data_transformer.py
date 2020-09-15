@@ -1,10 +1,12 @@
 import re
 import json
 import logging
+import warnings
 import pandas as pd
 import numpy as np
 import mongoengine as mdb
 
+from datetime import datetime
 from typing import List, Dict
 from model.sneaker_models import SneakerReference
 from config.config import service_config as config
@@ -23,8 +25,9 @@ def transform_data(data: List[SneakerReference]) -> List[SneakerReference]:
         base_model_by_categories,
         base_model_by_predefined
     ]
-
-    for step in pipeline:
+    warnings.simplefilter(action='ignore', category=UserWarning)
+    for i, step in enumerate(pipeline):
+        print(f"Execution {i+1} step {{{step.__name__}}} with {len(df)} records")
         df = step(df)
 
     df = get_target_records(df, target_ids=unique_ids)
@@ -38,22 +41,23 @@ def to_dict(data: List[mdb.Document]) -> List[dict]:
 def to_dataframe(data: List[mdb.Document]) -> pd.DataFrame:
     dicts = to_dict(data)
     fields = list(dicts[0].keys())
-    return pd.DataFrame(to_dict(data), columns=fields[1:])
+    return pd.DataFrame(to_dict(data), columns=fields)
 
 
 def query_by_brandname(df: pd.DataFrame) -> pd.DataFrame:
-    with open("../meta/brands.json", "r") as stream:
+    with open("meta/brands.json", "r") as stream:
         brand_query = json.load(stream)
     filtered = df.brandname.isin(brand_query)
-    logging.info(f"found {len(df) - len(filtered)} records to filter out by brand names")
-    return df[~filtered]
+    logging.info(f"found {len(df[~filtered])} records to filter out by brand names")
+    return df[filtered]
 
 
 def query_by_modelname(df: pd.DataFrame) -> pd.DataFrame:
-    with open("../meta/modelname-nin-query.json", "r") as stream:
-        keywords_query = json.load(stream)
+    with open("meta/modelname-nin-query.json", "r") as stream:
+        keywords = json.load(stream)
+    keywords_query = '|'.join(keywords)
     filtered = df.modelname.str.contains(keywords_query)
-    logging.info(f"found {len(filtered)} records to filter out by modelname keywords")
+    logging.info(f"found {len(df[filtered])} records to filter out by modelname keywords")
     return df[~filtered]
 
 
@@ -71,13 +75,13 @@ def get_unique_ids(df: pd.DataFrame) -> List[str]:
 
 def union_with_db(df: pd.DataFrame) -> pd.DataFrame:
     dbf = to_dataframe(SneakerReference.objects())
-    df = df.merge(dbf, on="uniqueid")
+    df = df.append(dbf)
     return handle_nan(df)
 
 
 # Determine base model by categories
 def base_model_by_categories(df: pd.DataFrame) -> pd.DataFrame:
-    df["BaseModel"] = df.apply(determine_base_model, axis=1)
+    df["basemodelname"] = df.apply(determine_base_model, axis=1)
     return df
 
 
@@ -116,9 +120,9 @@ def determine_base_model(row):
 
 # Determine base model by predefined base model list
 def base_model_by_predefined(df: pd.DataFrame) -> pd.DataFrame:
-    base_models = pd.read_json("../meta/base-model-tags.json")[0].tolist()
-
+    base_models = pd.read_json("meta/base-model-tags.json")[0].tolist()
     s = df.modelname.str.len().sort_values(ascending=False).index
+    df.reset_index(inplace=True)
     sdf = df.reindex(s)
     sequence = list(sdf.T.to_dict().values())
     groups = {}
@@ -134,7 +138,7 @@ def base_model_by_predefined(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def map_base_model_names(df: pd.DataFrame) -> pd.DataFrame:
-    with open("../meta/base-model-map.json", "r") as stream:
+    with open("meta/base-model-map.json", "r") as stream:
         model_map = json.load(stream)
     df["basemodelname"] = df["basemodelname"].map(model_map).fillna(df["basemodelname"])
     return df
@@ -153,24 +157,38 @@ def map_to_db_record(ref: dict) -> SneakerReference:
     unique_id = ref["uniqueid"]
     brand = model = basemodel = None
     re_id = re.compile(r"[\n\t\s;,.()\\/]")
+    brand_name, model_name, base_model_name = ref["brandname"], ref["modelname"], ref["basemodelname"]
     try:
-        brand_id = re_id.sub("-", ref["brand"])
+        brand_id = re_id.sub("-", brand_name)
         brand = brand_id
     except:
-        print(f"Error finding brand: '{brand_id}'")
+        print(f"Error finding brand: '{brand_name}'")
     try:
-        model_id = re_id.sub("-", ref["name"])
+        model_id = re_id.sub("-", model_name)
         model_id = f"{brand_id}_{model_id}"
         model = model_id
     except:
-        print(f"Error finding model: '{model_id}'")
+        print(f"Error finding model: '{model_name}'")
     try:
         if ref["basemodel"]:
-            basemodel_id = re_id.sub("-", ref["basemodel"])
+            basemodel_id = re_id.sub("-", base_model_name)
             basemodel_id = f"{brand_id}_{basemodel_id}"
             basemodel = basemodel_id
     except:
-        print(f"Error finding basemodel: '{basemodel_id}'")
+        print(f"Error finding basemodel: '{base_model_name}'")
+    # Parsing release date
+    release_date = ref["release_strdate"]
+    try:
+        parts = release_date.split("/")
+        if len(parts) == 3:
+            release_date = datetime.strptime(release_date, "%m/%d/%Y")
+        elif len(parts) == 2:
+            release_date = datetime.strptime(f"{parts[0]}/1/{parts[1]}", "%m/%d/%Y")
+        else:
+            release_date = datetime.strptime(f"1/1/{parts[0]}", "%d/%m/%Y")
+    except:
+        release_date = release_date if release_date else None
+    ref["releasedate"] = release_date if isinstance(release_date, datetime) else None
 
     return SneakerReference(
         unique_id=unique_id,
@@ -188,19 +206,9 @@ def map_to_db_record(ref: dict) -> SneakerReference:
         release_date=ref["releasedate"],
         release_strdate=ref["releasedate"],
         price=ref["price"],
-        materials=ref["Materials"] if len(ref["Materials"]) else None,
-        categories=ref["Categories"] if len(ref["Categories"]) else None,
-        image_link=f"{unique_id}.png",
-        image_links=generate_image_names(ref),
-        stadium_url=ref["url"],
+        materials=ref["materials"] if len(ref["materials"]) else None,
+        categories=ref["categories"] if len(ref["categories"]) else None,
+        image_link=ref["imagelink"],
+        image_links=ref["imagelinks"],
+        stadium_url=ref["stadiumurl"],
     )
-
-
-def generate_image_names(ref) -> List[str]:
-    images = []
-    unique_id = ref["uniqueid"]
-    links = ref["imagelinks"]
-    for i in range(2, len(links) + 1):
-        filename = f"{unique_id}_{i}.png"
-        images.append(filename)
-    return images

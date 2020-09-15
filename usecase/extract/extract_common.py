@@ -5,14 +5,16 @@ from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as ec
+from config.config import service_config as config
 
-PAUSE_TIME = 3
+PAUSE_TIME = config.common.min_pause_time
 
 
 def provide_browser() -> WebDriver:
     options = webdriver.ChromeOptions()
-    prefs = {"profile.managed_default_content_settings.images": 2}
-    options.add_experimental_option("prefs", prefs)
+    options.add_argument("start-maximized")
+    # prefs = {"profile.managed_default_content_settings.images": 2}
+    # options.add_experimental_option("prefs", prefs)
     browser = webdriver.Chrome(options=options)
     return browser
 

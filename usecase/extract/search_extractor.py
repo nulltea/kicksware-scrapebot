@@ -4,7 +4,7 @@ import logging
 from typing import List, Dict
 from bs4 import BeautifulSoup
 from usecase.extract.extract_common import *
-from usecase.extract.extract_save import *
+from usecase.extract.extract_backup import *
 from model.sneaker_models import SneakerReference
 from config.config import service_config as config
 from selenium.webdriver.common.keys import Keys
@@ -34,8 +34,7 @@ def extract_by_search(tags_max=0, offset=0):
         details = scraper.select("[id^=add-remove] a:last-child")
         maps = [unmarshal_button_content(html) for html in details]
         if len(maps) != 0:
-            append_csv(os.path.join(config.common.backup_path, "details.csv"), maps)
-            append_json(os.path.join(config.common.backup_path, "details.json"), maps)
+            backup(maps, "details")
         time.sleep(2)
 
 
