@@ -1,0 +1,67 @@
+project: kicksware
+component: provider-bot
+nameOverride: ""
+fullnameOverride: ""
+replicaCount: 1
+baseDirL: &baseDir /run/desktop/mnt/host/wsl
+
+image:
+  registry: registry.kicksware.com
+  repository: provider-bot
+  pullPolicy: IfNotPresent
+  tag: latest
+
+service:
+  type: ClusterIP
+  port: 8080
+
+ingress:
+  enabled: true
+  entrypoints:
+    - web
+    - websecure
+  tls:
+    enabled: true
+    certResolver: le
+  routes:
+    - host: bot.kicksware.com
+      paths:
+        - /
+      middlewares: []
+      services:
+        - name: provider-bot
+          port: 8080
+          scheme: http
+
+volumes:
+  - name: backup
+    host:
+      pathBase: *baseDir
+      path: /source/data/scraped/stadium_goods
+      type: Directory
+    mountPath: /root/backup/stadium_goods
+  - name: storage
+    host:
+      pathBase: *baseDir
+      path: /source/storage/references_new
+      type: Directory
+    mountPath: /root/storage/images
+
+resources: {}
+
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+secrets:
+  dockerRegistry: registry-token
+  mounts:
+    - name: mongo-tls
+      mountPath: /root/certs/mongo
+
+config:
+  environment: k8s
+  configMountPath: /root/config/config.yaml
+
