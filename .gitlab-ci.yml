@@ -20,6 +20,12 @@ bot.build:
     - bot
   variables:
     DOCKER_HOST: tcp://localhost:2375
+  only:
+    changes:
+      - api/**/*
+      - model/**/*
+      - docker/**/*
+      - usecase/**/*
   except:
     changes:
       - "*.md"
@@ -54,15 +60,11 @@ bot.deploy.k8s:
     - k8s
     - bot
   only:
-    changes:
-      - api/**/*
-      - model/**/*
-      - docker/**/*
-      - usecase/**/*
     kubernetes: active
   except:
     changes:
       - "*.md"
+      - notebook/**/*
   before_script:
     - kubectl create secret docker-registry registry-token -n bot
       --docker-server=$CI_REGISTRY --docker-username=$CI_REGISTRY_USER --docker-password=$CI_REGISTRY_TOKEN --dry-run -o yaml | kubectl apply -f -
