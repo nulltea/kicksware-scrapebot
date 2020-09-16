@@ -1,6 +1,6 @@
 commonConfig:
   backupPath: backup
-  imageStoragePath: storage/images
+  imageStoragePath: storage/references
   minPauseTime: 3
   maxPauseTime: 5
   apiHost: 0.0.0.0
