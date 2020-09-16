@@ -27,7 +27,7 @@ def transform_data(data: List[SneakerReference]) -> List[SneakerReference]:
     ]
     warnings.simplefilter(action='ignore', category=UserWarning)
     for i, step in enumerate(pipeline):
-        print(f"Execution {i+1} step [{step.__name__}] with {len(df)} records")
+        logging.info(f"Execution {i+1} step [{step.__name__}] with {len(df)} records")
         df = step(df)
 
     df = get_target_records(df, target_ids=unique_ids)

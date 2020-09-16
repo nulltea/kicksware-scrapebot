@@ -1,14 +1,18 @@
+import os
 import yaml
+
+CONFIG_PATH = os.environ.get("CONFIG_PATH") or "config/config.dev.yaml"
 
 
 class CommonConfig:
     def __init__(self, config):
         self._config = config["commonConfig"]
-        self.selenium_path = self._config["seleniumPath"]
         self.backup_path = self._config["backupPath"]
         self.image_storage_path = self._config["imageStoragePath"]
         self.min_pause_time = self._config["minPauseTime"]
         self.max_pause_time = self._config["maxPauseTime"]
+        self.api_host = self._config["apiHost"]
+        self.api_port = self._config["apiPort"]
 
 
 class TargetConfig:
@@ -50,6 +54,6 @@ class ServiceConfig:
         self.mongodb = MongoConfig(config)
 
 
-with open("config/config.dev.yaml") as stream:
+with open(CONFIG_PATH) as stream:
     parsed = yaml.load(stream, Loader=yaml.Loader)
 service_config = ServiceConfig(config=parsed)

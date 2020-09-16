@@ -12,9 +12,13 @@ PAUSE_TIME = config.common.min_pause_time
 
 def provide_browser() -> WebDriver:
     options = webdriver.ChromeOptions()
-    options.add_argument("start-maximized")
-    # prefs = {"profile.managed_default_content_settings.images": 2}
-    # options.add_experimental_option("prefs", prefs)
+    options.add_argument("--window-size=1420,1080")
+    options.add_argument("--no-sandbox")
+    options.add_argument('--disable-gpu')
+    options.add_argument("--disable-setuid-sandbox")
+    options.add_argument("--disable-extensions")
+    prefs = {"profile.managed_default_content_settings.images": 2}
+    options.add_experimental_option("prefs", prefs)
     browser = webdriver.Chrome(options=options)
     return browser
 

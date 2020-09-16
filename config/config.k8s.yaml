@@ -1,7 +1,10 @@
 commonConfig:
-  seleniumPath: /driver/chromedriver.exe
-  backupPath: /backup/stadium_goods
-  imageStoragePath: /storage/images
+  backupPath: backup
+  imageStoragePath: storage/images
+  minPauseTime: 3
+  maxPauseTime: 5
+  apiHost: 0.0.0.0
+  apiPort: 8080
 targetConfig:
   host: stadiumgoods.com
   releasesURL: https://stadiumgoods.com/stadium-picks
@@ -13,7 +16,7 @@ mongoConfig:
   URL: mongodb://db.kicksware.com:443
   TLS:
     enableTLS: true
-    certFile: certs/mongo/ca.crt
+    certFile: /root/certs/mongo/ca.crt
     keyFile: certs/mongo/tls.key
   database: sneakerResaleDB
   collection: references
