@@ -1,0 +1,29 @@
+version: '3.7'
+services:
+  provider-bot:
+    build:
+      context: .
+      dockerfile: ./docker/Dockerfile
+      target: prod
+    image: ${CI_REGISTRY_PREFIX}/provider-bot
+    container_name: provider-bot
+    environment:
+      - ENV=k8s
+    restart: always
+    labels:
+      - traefik.http.routers.provider-bot-secure.rule=Host(`bot.kicksware.com`)
+      - traefik.http.routers.provider-bot-secure.tls=true
+      - traefik.http.routers.provider-bot-secure.tls.certresolver=le
+      - traefik.http.routers.provider-bot.rule=Host(`bot.kicksware.com`)
+      - traefik.http.routers.provider-bot.middlewares=https-redirect
+      - traefik.docker.network=web
+    networks:
+      - web
+    volumes:
+      - /drivers:/driver
+      - /source/storage:/storage
+      - /source/data/scraped/stadium_goods:/backup/stadium_goods
+      - /source/certs/mongo/ca.pem:/root/certs/mongo/ca.crt
+networks:
+  web:
+    external: true
