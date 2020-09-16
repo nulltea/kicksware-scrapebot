@@ -8,27 +8,18 @@ stages:
   - deploy
   - check
 
-before_script: &common_before
-  - kubectl create secret docker-registry registry-token -n api
-    --docker-server=$CI_REGISTRY --docker-username=$CI_REGISTRY_USER --docker-password=$CI_REGISTRY_TOKEN --dry-run -o yaml | kubectl apply -f -
-  - kubectl create secret generic mongo-auth -n api
-    --from-literal=MONGO_USER=$MONGO_USER --from-literal=MONGO_PASSWORD=$MONGO_PASSWORD --dry-run -o yaml | kubectl apply -f -
-  - apk add gettext
-
-
 # build stage steps:
 
-api.build:
+bot.build:
   image: docker/compose:1.25.0
   services:
     - docker:18.09-dind
   stage: build
   tags:
     - k8s
-    - api
+    - bot
   variables:
     DOCKER_HOST: tcp://localhost:2375
-  allow_failure: true
   except:
     changes:
       - "*.md"
@@ -42,11 +33,11 @@ api.build:
 
 # test stage steps:
 
-api.test:
+bot.test:
   stage: test
   tags:
     - k8s
-    - api
+    - bot
   except:
     changes:
       - "*.md"
@@ -57,23 +48,42 @@ api.test:
 
 # deploy stage steps:
 
-users.deploy.k8s:
+bot.deploy.k8s:
   stage: deploy
   tags:
     - k8s
-    - api
+    - bot
   only:
     changes:
-      - user-service/**/*
+      - api/**/*
+      - model/**/*
+      - docker/**/*
+      - usecase/**/*
     kubernetes: active
   except:
     changes:
       - "*.md"
   before_script:
-    - *common_before
-    - kubectl create secret generic mail-auth -n api
-      --from-literal=MAIL_SERVER=$MAIL_SERVER --from-literal=MAIL_ADDRESS=$MAIL_ADDRESS --from-literal=MAIL_PASSWORD=$MAIL_PASSWORD --dry-run -o yaml | kubectl apply -f -
-    - envsubst < config/config.$ENV.yaml > config.yaml && kubectl create configmap provider-bot.config -n bot
+    - kubectl create secret docker-registry registry-token -n bot
+      --docker-server=$CI_REGISTRY --docker-username=$CI_REGISTRY_USER --docker-password=$CI_REGISTRY_TOKEN --dry-run -o yaml | kubectl apply -f -
+    - apk add gettext && envsubst < config/config.$ENV.yaml > config.yaml && kubectl create configmap provider-bot.config -n bot
       --from-file=config.yaml=config.yaml --dry-run -o yaml | kubectl apply -f -
   script:
-    - helm upgrade --install -n api users-service user-service/users-chart
+    - helm upgrade --install -n bot provider-bot provider-bot/
+
+# check stage steps:
+
+bot.check.k8s:
+  image: curlimages/curl
+  stage: check
+  tags:
+    - k8s
+    - bot
+  before_script:
+    - echo Waiting half a minute for bot to properly start or fail... && sleep 30s
+  script:
+    - curl "http://$BOT_ENDPOINT_URL/health/live" -f -o /dev/null || exit 1 | echo -e "\e[Bot is dead! Triggering check job failure"
+    - echo -e "\e[36mBot is live. Checking it's readiness:\n"
+    - curl "http://$BOT_ENDPOINT_URL/health/ready" -f -o /dev/null || exit 1 | echo -e "\e[91mBot is not ready! Triggering check job failure"
+    - echo -e "\e[36mBot is ready. Check job succeeded!"
+  retry: 2
