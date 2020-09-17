@@ -2,11 +2,13 @@ import time
 import logging
 import schedule
 import traceback
-import usecase.extract.releases_extractor as extractor
+import usecase.extract.stadium_releases_extractor as stadium_releases_extractor
+import usecase.extract.stadium_search_extractor as stadium_search_extractor
+import usecase.extract.goat_extractor as goat_extractor
 import usecase.extract.download_images as downloader
 import usecase.transform.data_transformer as transformer
 import model.sneaker_models as saver
-from typing import List, Callable
+from typing import List, Callable, Any
 from config.config import service_config as config
 from multiprocessing import Process, Queue
 
@@ -61,7 +63,7 @@ def terminate_daily_task():   # TODO terminate task
 
 def daily_task():
     pipeline = [
-        extractor.extract_releases,
+        stadium_releases_extractor.extract_releases,
         transformer.transform_data,
         downloader.download_images,
         saver.save_records
@@ -70,13 +72,30 @@ def daily_task():
         logging.info("daily task completed successfully!")
 
 
-def execute_pipeline(pipeline: List[Callable]) -> bool:
+def search_task(target, query):
+    pipeline = []
+
+    if target == "stadium":
+        pipeline.append(stadium_search_extractor.extract_by_search)
+    elif target == "goat":
+        pipeline.append(goat_extractor.extract_search)
+
+    pipeline.extend([
+        transformer.transform_data,
+        downloader.download_images,
+        saver.save_records
+    ])
+    if execute_pipeline(pipeline, query):
+        logging.info("daily task completed successfully!")
+
+
+def execute_pipeline(pipeline: List[Callable], args=None) -> bool:
     records, success = None, False
     try:
         for i, step in enumerate(pipeline):
             print(f"Execution {i+1} step [{step.__name__}] with {(0 if not records else len(records))} records")
             if not i:
-                records = step()
+                records = step(args)
             elif i == (len(pipeline) - 1):
                 success = step(records)
             else:

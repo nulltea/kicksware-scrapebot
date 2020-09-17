@@ -44,6 +44,7 @@ volumes:
   - name: storage
     persistent:
       claim: provider-bot-storageclaim
+      exists: true
       storageClass: glusterfs
       size: 25Gi
       accessModes:

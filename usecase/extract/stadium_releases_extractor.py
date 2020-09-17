@@ -17,8 +17,8 @@ def extract_releases() -> List[SneakerReference]:
     extracted, found_existed, last_label, iteration = [], False, "", 0
     selector = 'a[data-element="Product Tile"]'
     browser = provide_browser()
-    browser.get(config.target.releases_url)
-    backuped_records = [r.stadium_url for r in read_backup_records()]
+    browser.get(config.stadium_goods.releases_url)
+    backuped_records = [r.stadium_url for r in read_backup_records("stadium")]
     while not found_existed:
         time.sleep(MAX_PAUSE_TIME)
         wait_until_located(browser, selector)
@@ -39,11 +39,12 @@ def extract_releases() -> List[SneakerReference]:
                 record.generate_id()
                 if not already_exists(record):
                     extracted.append(record)
-                    backup_record(record)
+                    backup_record(record, "stadium")
+                    last_label = label
                     continue
                 found_existed = True
                 break
-        browser.get(config.target.releases_url)
+        browser.get(config.stadium_goods.releases_url)
         iteration += 1
         scroll_to_last_element(browser, selector, iteration)
     return extracted
@@ -81,6 +82,7 @@ def extract_from_page(page_source) -> SneakerReference:
         sneaker_record.stadium_url = script_data["URL"]
     if brand_data:
         sneaker_record.brand_name = brand_data
+        sneaker_record.designer = brand_data
     if material_data:
         sneaker_record.materials = [material.strip() for material in material_data.split(",")]
     if attr_data:

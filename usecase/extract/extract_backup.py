@@ -4,6 +4,7 @@ import logging
 import pandas as pd
 import mongoengine as mdb
 
+from datetime import date
 from typing import List, Any
 from model.sneaker_models import SneakerReference
 from config.config import service_config as config
@@ -114,10 +115,11 @@ def read_backup_records_csv(filename="backup.csv") -> List[SneakerReference]:
 
 def close_backup(filename="backup"):
     records = read_backup_records(filename)
+    date_str = date.today().strftime('%d-%m-%Y')
     if not records:
         try:
-            os.remove(os.path.join(BACKUP_PATH,f"{filename}.json"))
-            os.remove(os.path.join(BACKUP_PATH,f"{filename}.csv"))
+            os.renames(os.path.join(BACKUP_PATH, f"{filename}.json"), os.path.join(BACKUP_PATH, f"{filename}-{date_str}.json"))
+            os.renames(os.path.join(BACKUP_PATH, f"{filename}.csv"), os.path.join(BACKUP_PATH, f"{filename}_{date_str}.json"))
         except Exception as e:
             logging.warning(f"empty backup files remove failed: {e}")
         return

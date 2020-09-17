@@ -182,6 +182,8 @@ def map_to_db_record(ref: dict) -> SneakerReference:
         parts = release_date.split("/")
         if p_date := try_parse_date(release_date, "%B %d, %Y"):
             release_date = p_date
+        elif len(parts) == 3 and (p_date := try_parse_date(release_date, "%Y-%m-%d")):
+            release_date = p_date
         elif len(parts) == 3 and (p_date := try_parse_date(release_date, "%m/%d/%Y")):
             release_date = p_date
         elif len(parts) == 3 and (p_date := try_parse_date(release_date, "%d/%m/%Y")):

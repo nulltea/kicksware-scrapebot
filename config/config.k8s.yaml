@@ -6,12 +6,15 @@ commonConfig:
   apiHost: 0.0.0.0
   apiPort: 8080
 targetConfig:
-  host: stadiumgoods.com
-  releasesURL: https://stadiumgoods.com/stadium-picks
-  signInURL: https://sellers.stadiumgoods.com/users/sign_in
-  searchURL: https://sellers.stadiumgoods.com/sellers/tickets/new
-  login: $STADIUM_LOGIN
-  password: $STADIUM_PASSWORD
+  - host: stadiumgoods.com
+    releasesURL: https://stadiumgoods.com/stadium-picks
+    signInURL: https://sellers.stadiumgoods.com/users/sign_in
+    searchURL: https://sellers.stadiumgoods.com/sellers/tickets/new
+    login: $STADIUM_LOGIN
+    password: $STADIUM_PASSWORD
+  - host: goat.com
+    releasesURL: https://goat.com/collections/just-dropped
+    searchURL: https://goat.com/search?query={query}
 mongoConfig:
   URL: mongodb://db.kicksware.com:443
   TLS:

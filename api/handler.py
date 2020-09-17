@@ -29,10 +29,11 @@ def get_backup_file(filename):
     return jsonify([r.to_mongo().to_dict() for r in backup.read_backup_records(filename)])
 
 
-@handler.route("/daily/run", methods=["POST"])
-def run_daily_task():
-    scheduler.process_daily_task()
-    return "Task running..."
+@handler.route("/daily/<target>/run", methods=["POST"])
+def run_daily_task(target):
+    if target == "stadium":
+        scheduler.process_daily_task()
+    return f"Task on {target} running..."
 
 
 @handler.route("/daily/terminate", methods=["POST"])
@@ -51,6 +52,12 @@ def cancel_daily_task():
 def schedule_daily_task():
     scheduler.schedule_daily_task()
     return "Task scheduled"
+
+
+@handler.route("/search/<target>/run/<query>", methods=["POST"])
+def run_search_task(target, query):
+    scheduler.search_task(target, query)
+    return f"Task on {target} running..."
 
 
 @handler.route("/schedule/start", methods=["POST"])

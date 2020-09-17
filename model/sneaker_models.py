@@ -48,18 +48,24 @@ class SneakerReference(mdb.Document):
     nickname = mdb.StringField()
     price = mdb.DecimalField()
     materials = mdb.ListField()
+    technology = mdb.StringField()
     categories = mdb.ListField()
+    designer = mdb.StringField()
     image_link = mdb.StringField(db_field="imagelink")
     image_links = mdb.ListField(db_field="imagelinks")
     stadium_url = mdb.StringField(db_field="stadiumurl")
+    goat_url = mdb.StringField()
     added_date = mdb.DateField(db_field="added_date")
     meta = {"collection": config.mongodb.collection, "strict": False}
 
     def generate_id(self):
-        re_id = re.compile(r"[\n\t\s;,.()\\/]")
-        model_id = re_id.sub("-", self.model_name)
-        sku_id = re_id.sub("-", self.manufacture_sku)
-        self.unique_id = f"{model_id}_{sku_id}".lower()
+        try:
+            re_id = re.compile(r"[\n\t\s;,.()\\/]")
+            model_id = re_id.sub("-", self.model_name)
+            sku_id = re_id.sub("-", self.manufacture_sku)
+            self.unique_id = f"{model_id}_{sku_id}".lower()
+        except:
+            pass
 
 
 def save_records(records: List[SneakerReference]) -> bool:

@@ -17,7 +17,7 @@ SELECT_KEYS = ["id", "name", "brand", "sku", "manufacturer_sku", "description", 
 
 def extract_by_search(tags_max=0, offset=0):
     browser = provide_browser()
-    browser.get(config.target.sign_in_url)
+    browser.get(config.stadium_goods.sign_in_url)
     sign_in(browser)
     for i, tag in enumerate(alphanum_tags(max_length=tags_max, offset=offset)):
         selector = ".seller-searchbar input[type='text']"
@@ -60,8 +60,8 @@ def sign_in(browser):
     password_input = browser.find_element_by_css_selector("#user_password")
     remember_input = browser.find_element_by_css_selector(".chk-rdbtn-set .chkbox-label")
 
-    username_input.send_keys(config.target.sign_in)
-    password_input.send_keys(config.target.password)
+    username_input.send_keys(config.stadium_goods.sign_in)
+    password_input.send_keys(config.stadium_goods.password)
     remember_input.click()
 
     browser.find_element_by_name("commit").click()
