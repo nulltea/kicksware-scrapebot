@@ -23,7 +23,9 @@ def transform_data(data: List[SneakerReference]) -> List[SneakerReference]:
         handle_nan,
         union_with_db,
         base_model_by_categories,
-        base_model_by_predefined
+        base_model_by_predefined,
+        merge_base_model_name,
+        handle_nan
     ]
     warnings.simplefilter(action='ignore', category=UserWarning)
     for i, step in enumerate(pipeline):
@@ -81,7 +83,7 @@ def union_with_db(df: pd.DataFrame) -> pd.DataFrame:
 
 # Determine base model by categories
 def base_model_by_categories(df: pd.DataFrame) -> pd.DataFrame:
-    df["basemodelname"] = df.apply(determine_base_model, axis=1)
+    df["basemodelname_c"] = df.apply(determine_base_model, axis=1)
     return df
 
 
@@ -133,8 +135,21 @@ def base_model_by_predefined(df: pd.DataFrame) -> pd.DataFrame:
 
     sequence = list()
     for key, items in groups.items():
-        sequence.extend([dict(item, basemodel=key) for item in items])
-    return pd.DataFrame(sequence)
+        sequence.extend([dict(item, basemodelname_p=key) for item in items])
+    rdf = pd.DataFrame(sequence)
+    return df.merge(rdf[["uniqueid", "basemodelname_p"]], on="uniqueid", how="left")
+
+
+def merge_base_model_name(df: pd.DataFrame) -> pd.DataFrame:
+    def merge(row):
+        if base_model := row["basemodelname_p"]:
+            return base_model
+        elif base_model := row["basemodelname_c"]:
+            return base_model
+        else:
+            return ""
+    df["basemodelname"] = df.apply(merge, axis=1)
+    return df
 
 
 def map_base_model_names(df: pd.DataFrame) -> pd.DataFrame:
@@ -170,7 +185,7 @@ def map_to_db_record(ref: dict) -> SneakerReference:
     except:
         print(f"Error finding model: '{model_name}'")
     try:
-        if ref["basemodel"]:
+        if base_model_name:
             basemodel_id = re_id.sub("-", base_model_name)
             basemodel_id = f"{brand_id}_{basemodel_id}"
             basemodel = basemodel_id
@@ -182,7 +197,7 @@ def map_to_db_record(ref: dict) -> SneakerReference:
         parts = release_date.split("/")
         if p_date := try_parse_date(release_date, "%B %d, %Y"):
             release_date = p_date
-        elif len(parts) == 3 and (p_date := try_parse_date(release_date, "%Y-%m-%d")):
+        elif p_date := try_parse_date(release_date, "%Y-%m-%d"):
             release_date = p_date
         elif len(parts) == 3 and (p_date := try_parse_date(release_date, "%m/%d/%Y")):
             release_date = p_date
@@ -203,7 +218,7 @@ def map_to_db_record(ref: dict) -> SneakerReference:
         brand=brand,
         model_name=ref["modelname"],
         model=model,
-        base_model_name=ref["basemodel"],
+        base_model_name=ref["basemodelname"],
         base_model=basemodel,
         description=ref["description"],
         color=ref["color"],

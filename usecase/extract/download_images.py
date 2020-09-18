@@ -15,15 +15,15 @@ def download_images(records: List[SneakerReference]) -> List[SneakerReference]:
         links = list(sorted(set(ref.image_links + [ref.image_link])))
         ref.image_links = []
         for j, link in enumerate(links):
-            time.sleep(PAUSE_TIME)
             file_name = f"{ref.unique_id}.png" if j == 0 else f"{ref.unique_id}_{j+1}.png"
             image_path = os.path.join(config.common.image_storage_path, file_name)
-            if os.path.exists(image_path):
-                continue
-            try:
-                download(link, image_path)
-            except Exception as e:
-                logging.warning(f"Download[{i}] {link} failed: {e}")
+            logging.info(f"Processing {ref.unique_id} {link}")
+            if not os.path.exists(image_path):
+                try:
+                    time.sleep(PAUSE_TIME)
+                    download(link, image_path)
+                except Exception as e:
+                    logging.warning(f"Download[{i}] {link} failed: {e}")
             if j == 0:
                 ref.image_link = file_name
             else:

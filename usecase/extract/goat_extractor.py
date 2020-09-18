@@ -20,6 +20,7 @@ def extract_search(query) -> List[SneakerReference]:
 
 
 def extract(url) -> List[SneakerReference]:
+    return read_backup_records("goat")
     extracted, found_existed, last_url, iteration = [], False, "", 0
     selector = 'a[data-qa="search_grid_cell"]'
     browser = provide_browser()
@@ -36,12 +37,13 @@ def extract(url) -> List[SneakerReference]:
             product_tiles = product_tiles[index:]
         product_attrs = [(tile.get_attribute("href"), tile.get_attribute("title")) for tile in product_tiles]
         product_attrs = [(url, label) for url, label in product_attrs if url not in backuped_records]
-        for url, label in product_attrs:
+        for link, label in product_attrs:
             time.sleep(MIN_PAUSE_TIME)
-            logging.info(f'Start processing "{label}" product from "{url}"')
-            browser.get(url)
+            logging.info(f'Start processing "{label}" product from "{link}"')
+            browser.get(link)
             time.sleep(MAX_PAUSE_TIME)
             if record := extract_from_page(browser.page_source):
+                record.goat_url = link
                 record.generate_id()
                 if not already_exists(record):
                     extracted.append(record)
@@ -51,7 +53,10 @@ def extract(url) -> List[SneakerReference]:
                 break
         browser.get(url)
         iteration += 1
-        scroll_to_last_element(browser, selector, iteration)
+        try:
+            scroll_to_last_element(browser, selector, iteration)
+        except:
+            break
     return extracted
 
 
@@ -67,6 +72,8 @@ def extract_from_page(page_source) -> SneakerReference:
         description_data = description_elem.get_text()
     if price_elem := source.select_one(".ProductTitlePaneActions__BuyPrice-l1sjea-4"):
         price_data = price_elem.get_text()
+    elif price_elem := source.select_one(".ProductTitlePaneActions__RetailPrice-l1sjea-3"):
+        price_data = price_elem.get_text()
     sneaker_record = SneakerReference()
     sneaker_record.manufacture_sku = try_get_fact("sku", facts_data)
     sneaker_record.brand_name = try_get_fact("brand", facts_data)
@@ -79,7 +86,8 @@ def extract_from_page(page_source) -> SneakerReference:
     sneaker_record.designer = try_get_fact("designer", facts_data)
     sneaker_record.materials = try_get_facts(["upper material", "lower material", "material"], facts_data)
     sneaker_record.description = description_data
-    sneaker_record.price = price_data.replace("$", "").strip()
+    sneaker_record.price = parse_price(price_data)
+
     time.sleep(MIN_PAUSE_TIME)
     if (images := extract_images(source)) and len(images):
         sneaker_record.image_link = images[0]
@@ -95,19 +103,26 @@ def extract_images(page_source: BeautifulSoup) -> List[str]:
 def parse_title(title: str) -> (str, str):
     re_nickname = re.search(r"(?<=')(.*)'(?<=')", title)
     nickname = re_nickname.group(1)
-    model_name = title.replace(f"'nickname'", "").strip()
-    return nickname, model_name
+    model_name = title.replace(f"'{nickname}'", "").strip()
+    return model_name, nickname
 
 
 def parse_facts(facts_elem: BeautifulSoup) -> dict:
     fact_dict = {}
-    fact_elems = facts_elem.select("script")
+    fact_elems = facts_elem.select("div.Fact__Details-lpojmp-1")
     for fact in fact_elems:
         fields = fact.find_all("span")
-        key = fields[0].get_text()
-        value = fields[1].get_text()
+        key = fields[0].get_text().upper()
+        value = fields[1].get_text().strip()
         fact_dict[key] = value
     return fact_dict
+
+
+def parse_price(price_data):
+    try:
+        return price_data.replace("$", "").strip()
+    except:
+        return 0
 
 
 def try_get_fact(key: str, facts: dict):

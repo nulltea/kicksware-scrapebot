@@ -103,7 +103,7 @@ def execute_pipeline(pipeline: List[Callable], args=None) -> bool:
             if not len(records) and not i:
                 logging.info("nothing was extracted, stopping pipeline here")
                 break
-            else:
+            elif not len(records):
                 logging.warning(f"step [{step.__name__}] does not return any records, but they was at last step, " +
                                 "stopping pipeline here")
                 break

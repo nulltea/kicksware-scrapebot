@@ -36,6 +36,7 @@ volumes:
   - name: backup
     persistent:
       claim: provider-bot-backupclaim
+      exists: true
       storageClass: nfs
       size: 1Gi
       accessModes:
